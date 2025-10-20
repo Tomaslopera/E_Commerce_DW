@@ -1,0 +1,11 @@
+# 🔐 Archivos sensibles
+.env
+*.pem
+*.key
+
+# Prefect / logs / caché
+__pycache__/
+*.log
+
+# SSH o configuración EC2
+ubuntu@*
