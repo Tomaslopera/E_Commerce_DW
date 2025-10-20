@@ -2,7 +2,9 @@ import uuid
 import pandas as pd
 import sqlalchemy
 import sqlalchemy.dialects.postgresql as pg
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import sqlite3
 conn = sqlite3.connect('olist.sqlite')
 
@@ -105,16 +107,16 @@ order_reviews_dtype = {
 }
 
 # --- DATA INSERTION ---
-engine = sqlalchemy.create_engine('postgresql+psycopg2://postgres:root@localhost:5432/E_Commerce')
+engine = sqlalchemy.create_engine(f'postgresql+psycopg2://postgres:{os.getenv("PG_PASS")}@{os.getenv("PG_HOST")}:{os.getenv("PG_PORT")}/{os.getenv("PG_DB")}')
 
 with engine.begin() as conn:
     df_customer.to_sql("customers", conn, if_exists="append", index=False, dtype=customers_dtype)
-    df_geolocation.to_sql("geolocation", conn, if_exists="append", index=False, dtype=geolocation_dtype)
-    df_sellers.to_sql("sellers", conn, if_exists="append", index=False, dtype=sellers_dtype)
-    df_products.to_sql("products", conn, if_exists="append", index=False, dtype=products_dtype)
-    df_orders.to_sql("orders", conn, if_exists="append", index=False, dtype=orders_dtype)
-    df_order_items.to_sql("order_items", conn, if_exists="append", index=False, dtype=order_items_dtype)
-    df_order_payments.to_sql("order_payments", conn, if_exists="append", index=False, dtype=order_payments_dtype)
-    df_order_reviews.to_sql("order_reviews", conn, if_exists="replace", index=False, dtype=order_reviews_dtype)
+    df_geolocation.to_sql("geolocation", conn, if_exists="append", index=False, dtype=geolocation_dtype, method="multi",chunksize=10000)
+    df_sellers.to_sql("sellers", conn, if_exists="append", index=False, dtype=sellers_dtype, method="multi",chunksize=10000)
+    df_products.to_sql("products", conn, if_exists="append", index=False, dtype=products_dtype, method="multi",chunksize=10000)
+    df_orders.to_sql("orders", conn, if_exists="append", index=False, dtype=orders_dtype, method="multi",chunksize=10000)
+    df_order_items.to_sql("order_items", conn, if_exists="append", index=False, dtype=order_items_dtype, method="multi",chunksize=10000)
+    df_order_payments.to_sql("order_payments", conn, if_exists="append", index=False, dtype=order_payments_dtype, method="multi",chunksize=10000)
+    df_order_reviews.to_sql("order_reviews", conn, if_exists="replace", index=False, dtype=order_reviews_dtype, method="multi",chunksize=10000)
 
     print("Inserción completada con éxito en todas las tablas.")

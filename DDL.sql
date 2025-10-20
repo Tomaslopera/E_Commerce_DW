@@ -1,4 +1,4 @@
--- =======================
+
 -- DDL
 -- =======================
 CREATE TABLE customers (
@@ -77,7 +77,6 @@ CREATE TABLE order_reviews (
     review_answer_timestamp TIMESTAMP
 );
 
--- =======================
 -- CONFIRMACIONES
 -- =======================
 SELECT * FROM customers

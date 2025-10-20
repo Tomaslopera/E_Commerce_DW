@@ -46,72 +46,56 @@ def transform_data(df_customer, df_geolocation, df_order_items, df_order_payment
     dim_payment = dim_payment[["payment_key", "payment_sequential", "payment_type", "payment_installments", "payment_value", "order_id"]]
 
     # --- Dimensión Review ---
-    dim_review = df_order_reviews.rename(columns={
-        "review_id": "review_key",
-        "review_answer_timestamp": "review_answer_date"
-    })
+    dim_review = df_order_reviews[["review_id", "review_score", "review_comment_title", "review_comment_message", "review_creation_date", "review_answer_timestamp", "order_id"]]
+    dim_review = dim_review.rename(columns={"review_id": "review_key", "review_answer_timestamp": "review_answer_date"})
     dim_review["review_creation_date"] = pd.to_datetime(dim_review["review_creation_date"])
     dim_review["review_answer_date"] = pd.to_datetime(dim_review["review_answer_date"])
 
     # --- Dimensión Product ---
-    dim_product = df_products.rename(columns={
-        "product_id": "product_key",
-        "product_weight_g": "product_weight",
-        "product_length_cm": "product_length",
-        "product_height_cm": "product_height",
-        "product_width_cm": "product_width"
-    })
-    dim_product = dim_product.merge(df_order_items[["product_id", "order_id"]],
-                                    left_on="product_key", right_on="product_id", how="left")
-    dim_product.drop(columns=["product_id"], inplace=True)
+    dim_product = df_products[["product_id", "product_category_name", "product_name_length", "product_description_length", "product_photos_qty", "product_weight_g", "product_length_cm", "product_height_cm", "product_width_cm"]]
+    dim_product = dim_product.merge(df_order_items[["product_id", "order_id"]], on="product_id", how="left")
+    dim_product = dim_product.rename(columns={"product_id": "product_key", "product_weight_g": "product_weight", "product_length_cm": "product_length", "product_height_cm": "product_height", "product_width_cm": "product_width"})
 
     # --- Dimensión Seller ---
-    dim_seller = df_sellers.rename(columns={"seller_id": "seller_key"})
-    dim_seller = dim_seller.merge(df_order_items[["seller_id", "order_id"]],
-                                  left_on="seller_key", right_on="seller_id", how="left")
-    dim_seller.drop(columns=["seller_id"], inplace=True)
+    dim_seller = df_sellers[["seller_id", "seller_zip_code_prefix"]]
+    dim_seller = dim_seller.merge(df_order_items[["seller_id", "order_id"]], on="seller_id", how="left")
+    dim_seller = dim_seller.rename(columns={"seller_id": "seller_key"})
 
     # --- Dimensión Geography ---
-    dim_geography = df_geolocation.rename(columns={
-        "geolocation_zip_code_prefix": "geography_key",
-        "geolocation_lat": "geography_lat",
-        "geolocation_lng": "geography_lng",
-        "geolocation_city": "geography_city",
-        "geolocation_state": "geography_state"
-    })
+    dim_geography = df_geolocation[["geolocation_zip_code_prefix", "geolocation_lat", "geolocation_lng", "geolocation_city", "geolocation_state"]]
+    dim_geography = dim_geography.rename(columns={"geolocation_zip_code_prefix": "geography_key", "geolocation_lat": "geography_lat", "geolocation_lng": "geography_lng", "geolocation_city": "geography_city", "geolocation_state": "geography_state"})
 
     # --- Dimensión Time ---
-    dim_time = df_orders[[
-        "order_purchase_timestamp", "order_approved_at",
-        "order_delivered_carrier_date", "order_delivered_customer_date",
-        "order_estimated_delivery_date"
-    ]]
-    dim_time["time_key"] = pd.to_datetime(dim_time["order_purchase_timestamp"])
-    dim_time["time_shipping_limit"] = pd.to_datetime(df_order_items["shipping_limit_date"])
-    dim_time = dim_time.rename(columns={
-        "order_approved_at": "time_approved",
-        "order_delivered_carrier_date": "time_delivered_carrier",
-        "order_delivered_customer_date": "time_delivered_customer",
-        "order_estimated_delivery_date": "time_estimated_delivery"
-    })
+    dim_time = df_orders[["order_purchase_timestamp", "order_approved_at", "order_delivered_carrier_date", "order_delivered_customer_date", "order_estimated_delivery_date"]]
+    dim_time["time_shipping_limit"] = df_order_items["shipping_limit_date"]
+    dim_time = dim_time.rename(columns={"order_purchase_timestamp": "time_key", "order_approved_at": "time_approved", "order_delivered_carrier_date": "time_delivered_carrier", "order_delivered_customer_date": "time_delivered_customer", "order_estimated_delivery_date": "time_estimated_delivery"})
+    dim_time["time_key"] = pd.to_datetime(dim_time["time_key"], format='%Y-%m-%d %H:%M:%S')
+    dim_time["time_approved"] = pd.to_datetime(dim_time["time_approved"], format='%Y-%m-%d %H:%M:%S')
+    dim_time["time_delivered_carrier"] = pd.to_datetime(dim_time["time_delivered_carrier"], format='%Y-%m-%d %H:%M:%S')
+    dim_time["time_delivered_customer"] = pd.to_datetime(dim_time["time_delivered_customer"], format='%Y-%m-%d %H:%M:%S')
+    dim_time["time_estimated_delivery"] = pd.to_datetime(dim_time["time_estimated_delivery"], format='%Y-%m-%d %H:%M:%S')
+    dim_time["time_shipping_limit"] = pd.to_datetime(dim_time["time_shipping_limit"], format='%Y-%m-%d %H:%M:%S')
 
     # --- Fact Table ---
     fact_orders = df_orders[["order_id", "order_status", "order_purchase_timestamp"]]
-    fact_orders["order_purchase_timestamp"] = pd.to_datetime(fact_orders["order_purchase_timestamp"])
+    fact_orders["order_purchase_timestamp"] = pd.to_datetime(fact_orders["order_purchase_timestamp"], format='%Y-%m-%d %H:%M:%S')
     fact_orders = fact_orders.merge(df_order_items[["order_id", "order_item_id", "price", "freight_value"]], on="order_id", how="left")
     fact_orders = fact_orders.merge(dim_review[["order_id", "review_key"]], on="order_id", how="left")
-    fact_orders = fact_orders.merge(dim_customer[["order_id", "customer_key", "customer_zip_code_prefix"]],
-                                    on="order_id", how="left")
+    fact_orders = fact_orders.merge(dim_customer[["order_id", "customer_key", "customer_zip_code_prefix"]], on="order_id", how="left")
     fact_orders = fact_orders.merge(dim_payment[["payment_key", "order_id"]], on="order_id", how="left")
     fact_orders = fact_orders.merge(dim_product[["product_key", "order_id"]], on="order_id", how="left")
-    fact_orders = fact_orders.merge(dim_seller[["seller_key", "order_id", "seller_zip_code_prefix"]],
-                                    on="order_id", how="left")
-    fact_orders = fact_orders.rename(columns={
-        "customer_zip_code_prefix": "geography_customer_key",
-        "seller_zip_code_prefix": "geography_seller_key",
-        "order_status": "status"
-    })
+    fact_orders = fact_orders.merge(dim_seller[["seller_key", "order_id", "seller_zip_code_prefix"]], on="order_id", how="left")
+    fact_orders = fact_orders.merge(dim_time[["time_key"]], left_on="order_purchase_timestamp", right_on="time_key", how="left")
+    fact_orders = fact_orders.rename(columns={"customer_zip_code_prefix": "geography_customer_key", "seller_zip_code_prefix": "geography_seller_key", "order_status": "status"})
+    fact_orders = fact_orders.drop(columns=["order_purchase_timestamp"])
     fact_orders.drop_duplicates(inplace=True)
+    fact_orders = fact_orders[["order_id", "order_item_id", "customer_key", "payment_key", "review_key", "product_key", "seller_key", "geography_customer_key", "geography_seller_key", "time_key", "status", "price", "freight_value"]]
+
+    dim_customer.drop(columns=["order_id", "customer_zip_code_prefix"], inplace=True)
+    dim_payment.drop(columns=["order_id"], inplace=True)
+    dim_review.drop(columns=["order_id"], inplace=True)
+    dim_product.drop(columns=["order_id"], inplace=True)
+    dim_seller.drop(columns=["order_id", "seller_zip_code_prefix"], inplace=True)
 
     print("Transformación completa.")
     return dim_customer, dim_payment, dim_review, dim_product, dim_seller, dim_geography, dim_time, fact_orders
@@ -138,6 +122,9 @@ def load_to_s3(df, table_name, key_column):
         
     if 'payment_key' in df.columns:
         df['payment_key'] = df['payment_key'].astype(str)
+
+    for col in merged.select_dtypes(include=['object']).columns:
+        merged[col] = merged[col].astype(str)
 
     buffer = io.BytesIO()
     merged.to_parquet(buffer, index=False)
