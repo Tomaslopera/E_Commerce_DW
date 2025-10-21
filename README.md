@@ -18,10 +18,10 @@ El objetivo es **extraer**, **transformar** y **cargar (ETL)** los datos desde u
 
 ### 1. **Creación DataMart - Insercción Datos a RDS**
 
-Se creó un DataMart a partir de las tablas exitentes dentro de `olist.sql`
+**Se creó un DataMart a partir de las tablas exitentes dentro de `olist.sql`**
 ![DataMart](images/DataMart.png)
 
-Se desarrolló la creación de las tablas dentro del RDS y la carga utilizando `EL.py`
+**Se desarrolló la creación de las tablas dentro del RDS y la carga utilizando `EL.py`**
 ![RDS](images/RDS-Connection.png)
 
 ### 2. **ETL Automatizado con Prefect y EC2**
