@@ -21,11 +21,34 @@ s3 = boto3.client("s3")
 # =====================================
 # EXTRACT
 # =====================================
-@task(name="Extract from PostgreSQL")
+# =====================================
+# EXTRACT (con sampling controlado)
+# =====================================
+@task(name="Extract from PostgreSQL with sampling")
 def extract_data(table_name: str) -> pd.DataFrame:
+    # Definir proporciones personalizadas por tabla
+    sample_fractions = {
+        "customers": 0.10,
+        "geolocation": 0.005,   # 0.5%
+        "order_items": 0.10,
+        "order_payments": 0.10,
+        "order_reviews": 0.10,
+        "orders": 0.10,
+        "products": 0.10,
+        "sellers": 0.10
+    }
+
+    frac = sample_fractions.get(table_name, 1.0)
+
+    # Ejecutar la consulta
     query = f"SELECT * FROM {table_name}"
     df = pd.read_sql(query, engine)
-    print(f"{len(df)} filas extraídas de {table_name}")
+
+    # Aplicar el muestreo solo si el tamaño > 0
+    if len(df) > 0 and frac < 1.0:
+        df = df.sample(frac=frac, random_state=42).reset_index(drop=True)
+
+    print(f"{len(df)} filas extraídas de {table_name} ({frac*100:.1f}%)")
     return df
 
 
@@ -104,34 +127,42 @@ def transform_data(df_customer, df_geolocation, df_order_items, df_order_payment
 # =====================================
 # LOAD
 # =====================================
-@task(name="Load to S3")
+@task(name="Load to S3 (append mode)")
 def load_to_s3(df, table_name, key_column):
     object_key = f"staging/{table_name}.parquet"
 
     try:
         response = s3.get_object(Bucket=os.getenv("S3_BUCKET"), Key=object_key)
         existing_df = pd.read_parquet(io.BytesIO(response["Body"].read()))
+        print(f"{table_name}: {len(existing_df)} filas existentes en S3.")
     except s3.exceptions.NoSuchKey:
         existing_df = pd.DataFrame()
+        print(f"{table_name}: no existe archivo previo en S3, se creará uno nuevo.")
+    except Exception as e:
+        print(f"Error leyendo {table_name} desde S3, se iniciará vacío: {e}")
+        existing_df = pd.DataFrame()
 
-    if not existing_df.empty:
-        merged = pd.concat([existing_df, df])
-        merged = merged.drop_duplicates(subset=[key_column])
-    else:
-        merged = df
-        
+    # Convertir claves UUID y columnas object a string (asegura consistencia)
     if 'payment_key' in df.columns:
         df['payment_key'] = df['payment_key'].astype(str)
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].astype(str)
 
-    for col in merged.select_dtypes(include=['object']).columns:
-        merged[col] = merged[col].astype(str)
+    # Concatenar nuevos datos con los existentes
+    merged = pd.concat([existing_df, df], ignore_index=True)
 
+    # Eliminar duplicados exactos (toda la fila)
+    merged.drop_duplicates(inplace=True)
+
+    # Reescribir Parquet (siempre completo, pero sin reemplazar la data previa lógicamente)
     buffer = io.BytesIO()
     merged.to_parquet(buffer, index=False)
     buffer.seek(0)
+
+    # Subir el Parquet consolidado a S3
     s3.put_object(Bucket=os.getenv("S3_BUCKET"), Key=object_key, Body=buffer.getvalue())
 
-    print(f"{table_name} actualizado → {len(merged)} registros totales en S3.")
+    print(f"{table_name} actualizado → {len(merged)} filas totales (se agregaron {len(merged) - len(existing_df)} nuevas).")
 
 
 # =====================================
