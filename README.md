@@ -58,6 +58,8 @@ El servidor EC2 ejecuta el flujo ETL automáticamente utilizando **crontab**.
 ![Crontab Config](images/Crontab-Config.png)
 ![Crontab Log](images/Crontab-Log.png)
 
+> Verificación Activación 8:00 a.m. 21 Oct
+![Crontab Oct21](images/Crontab-21Oct.png)
 
 ### 4. **Zona de Stagging (Amazon S3)**
 
