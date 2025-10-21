@@ -97,6 +97,7 @@ s3://olist-staging-zone/staging/
 ![Redshift Query](images/S3.png)
 
 ## Variables de Entorno
+```bash
 PG_USER=postgres
 PG_PASS=******
 PG_HOST=<endpoint-RDS>
@@ -107,3 +108,4 @@ S3_BUCKET=olist-staging-zone
 AWS_ACCESS_KEY_ID=******
 AWS_SECRET_ACCESS_KEY=******
 AWS_REGION=us-east-1
+```
