@@ -21,9 +21,6 @@ s3 = boto3.client("s3")
 # =====================================
 # EXTRACT
 # =====================================
-# =====================================
-# EXTRACT (con sampling controlado)
-# =====================================
 @task(name="Extract from PostgreSQL with sampling")
 def extract_data(table_name: str) -> pd.DataFrame:
     # Definir proporciones personalizadas por tabla
