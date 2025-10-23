@@ -98,6 +98,10 @@ s3://olist-staging-zone/staging/
 
 ![Redshift Query](images/S3.png)
 
+### 7. **Visualización PowerBI**
+
+![PowerBI](BI.jpeg)
+
 ## Variables de Entorno
 ```bash
 PG_USER=postgres
