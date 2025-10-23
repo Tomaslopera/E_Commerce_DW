@@ -25,14 +25,14 @@ s3 = boto3.client("s3")
 def extract_data(table_name: str) -> pd.DataFrame:
     # Definir proporciones personalizadas por tabla
     sample_fractions = {
-        "customers": 0.10,
-        "geolocation": 0.005,   # 0.5%
-        "order_items": 0.10,
-        "order_payments": 0.10,
-        "order_reviews": 0.10,
-        "orders": 0.10,
-        "products": 0.10,
-        "sellers": 0.10
+        "customers": 1,
+        "geolocation": 1,   # 0.5%
+        "order_items": 1,
+        "order_payments": 1,
+        "order_reviews": 1,
+        "orders": 1,
+        "products": 1,
+        "sellers": 1
     }
 
     frac = sample_fractions.get(table_name, 1.0)
